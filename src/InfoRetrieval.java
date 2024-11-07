@@ -2,10 +2,7 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.SQLException;
-import java.sql.Statement;
+import java.sql.*;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
@@ -20,15 +17,16 @@ public class InfoRetrieval extends JFrame implements ActionListener {
     private static final String[] sexContent = {"F", "M"}; // 성별 카테고리
     private JComboBox<String> CategoryBox;
     private JComboBox<String> ConditionBox;
+    private JComboBox<String> AvgSalCategoryBox;
     private JTextField salaryTextField; // 연봉 입력 필드
     private JTextArea selectedEmpInfo = new JTextArea(2, 80); // 선택한 직원의 이름을 가져오는 필드
-    private JTextArea totalEmpAmt = new JTextArea(1, 10); // 선택한 직원의 수
 
     private JLabel timeLabel = new JLabel(); // 현재 시간 표시
-    private JLabel selectedEmp = new JLabel("선택한 직원: ");
-    private JLabel totalEmptxt = new JLabel("선택한 인원 수 : ");
+    private JLabel avgSalaryLabel;
+    private JLabel selectedEmp = new JLabel("선택한 직원 이름: ");
     private JButton RetrievalBtn = new JButton("직원 검색"); // 정보 검색 버튼
     private JButton DeleteInfoBtn = new JButton("데이터 삭제"); // 정보 제거 버튼
+    private JButton AddEmpInfoBtn = new JButton("직원 추가하기");
 
 
     private JCheckBox name = new JCheckBox("Name(이름)", true);
@@ -41,12 +39,13 @@ public class InfoRetrieval extends JFrame implements ActionListener {
     private JCheckBox department = new JCheckBox("Department(부서)", true);
 
     public InfoRetrieval() {
+        Timer timer = new Timer(1000, e -> updateTime());
+        timer.start();
+
         selectedEmpInfo.setEditable(false);
         selectedEmpInfo.setLineWrap(true);
         selectedEmpInfo.setBorder(BorderFactory.createLineBorder(Color.BLACK));
 
-        totalEmpAmt.setEditable(false);
-        totalEmpAmt.setBorder(BorderFactory.createLineBorder(Color.BLACK));
         setLook();
         BasicUI();
 
@@ -55,9 +54,6 @@ public class InfoRetrieval extends JFrame implements ActionListener {
         setSize(1500, 700);
         setLocationRelativeTo(null);
         setVisible(true);
-
-        Timer timer = new Timer(1000, e -> updateTime());
-        timer.start();
     }
     private void updateTime() {
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
@@ -72,6 +68,11 @@ public class InfoRetrieval extends JFrame implements ActionListener {
         }
     }
     private void BasicUI() {
+
+        JPanel timePanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
+        timePanel.setBackground(new Color(230, 230, 250));
+        timePanel.add(timeLabel);
+
         JPanel jPanel0 = new JPanel();
         jPanel0.setLayout(new FlowLayout(FlowLayout.LEFT));
         jPanel0.setBackground(new Color(230, 230, 250));
@@ -91,10 +92,21 @@ public class InfoRetrieval extends JFrame implements ActionListener {
         jPanel0.add(ConditionBox);
         jPanel0.add(salaryTextField);
 
-        JPanel timePanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
-        timePanel.setBackground(new Color(230, 230, 250));
-        timePanel.add(timeLabel);
-        jPanel0.add(timePanel);
+        avgSalaryLabel = new JLabel("평균 급여 기준: ");
+        avgSalaryLabel.setVisible(false);
+        jPanel0.add(avgSalaryLabel);
+
+        String[] avgSalCategory = {"그룹 없음", "성별", "부서", "상급자"};
+        AvgSalCategoryBox = new JComboBox<>(avgSalCategory);
+        AvgSalCategoryBox.addActionListener(this);
+        AvgSalCategoryBox.setVisible(false);
+        jPanel0.add(AvgSalCategoryBox);
+
+        AddEmpInfoBtn.setFont(new Font("Arial", Font.BOLD, 12));
+        AddEmpInfoBtn.setBackground(new Color(70, 130, 180));
+        AddEmpInfoBtn.setForeground(Color.WHITE);
+        AddEmpInfoBtn.addActionListener(e -> openAddEmpWindow());
+        jPanel0.add(AddEmpInfoBtn);
 
         JPanel ContentCheckPanel = new JPanel();
         ContentCheckPanel.setLayout(new BoxLayout(ContentCheckPanel, BoxLayout.Y_AXIS));
@@ -117,12 +129,15 @@ public class InfoRetrieval extends JFrame implements ActionListener {
 
         BtnUI(RetrievalBtn, new Color(70, 130, 180));
         BtnUI(DeleteInfoBtn, new Color(70, 130, 180));
+        BtnUI(AddEmpInfoBtn, new Color(70, 130, 180));
 
         JPanel TopPanel = new JPanel(new BorderLayout());
         TopPanel.setBackground(new Color(230, 230, 250));
         TopPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
-        TopPanel.add(jPanel0, BorderLayout.NORTH);
-        TopPanel.add(ContentCheckPanel, BorderLayout.CENTER);
+
+        TopPanel.add(timePanel, BorderLayout.NORTH);
+        TopPanel.add(jPanel0, BorderLayout.CENTER);
+        TopPanel.add(ContentCheckPanel, BorderLayout.SOUTH);
 
         JPanel SelectPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 5));
         SelectPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
@@ -131,12 +146,6 @@ public class InfoRetrieval extends JFrame implements ActionListener {
         SelectPanel.add(selectedEmp);
         SelectPanel.add(selectedEmpInfo);
 
-        JPanel TotalEmpPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 5));
-        TotalEmpPanel.add(totalEmptxt);
-        TotalEmpPanel.setBackground(new Color(230, 230, 250));
-        TotalEmpPanel.setFont(new Font("Arial", Font.BOLD, 14));
-        totalEmptxt.setFont(new Font("Arial", Font.BOLD,14));
-        TotalEmpPanel.add(totalEmpAmt);
 
         JPanel DeleteInfoPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 5));
         DeleteInfoPanel.setBackground(new Color(230, 230, 250));
@@ -146,7 +155,6 @@ public class InfoRetrieval extends JFrame implements ActionListener {
         BtmPanel.setBackground(new Color(230, 230, 250));
         BtmPanel.setLayout(new BoxLayout(BtmPanel, BoxLayout.X_AXIS));
         BtmPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
-        BtmPanel.add(TotalEmpPanel);
         BtmPanel.add(DeleteInfoPanel);
 
         JPanel VerticalPanel = new JPanel();
@@ -166,30 +174,58 @@ public class InfoRetrieval extends JFrame implements ActionListener {
         jButton.setFont(new Font("Arial", Font.BOLD, 12));
         jButton.setBorder(BorderFactory.createCompoundBorder(
                 BorderFactory.createLineBorder(new Color(50, 50, 50, 50), 1),
-                BorderFactory.createEmptyBorder(5, 10, 5, 10)
-        ));
+                BorderFactory.createEmptyBorder(5, 10, 5, 10)));
     }
-
-
-    private void ConnectToMySQL() { // MySQL 연결
+    private Connection ConnectToMySQL() { // MySQL 연결
         try {
             Connection conn = DriverManager.getConnection(url, usr, password);
-            Statement stmt = conn.createStatement();
-
             System.out.println("데이터베이스 연결 성공!");
+            return conn;
         } catch (SQLException e) {
-            System.out.println("데이터베이스 연결 실패.");
+            System.out.println("데이터베이스 연결 실패." + e.getMessage());
+            return null;
         }
     }
+    private void openAddEmpWindow() { // 직원 정보 추가하는 새로운 창
+        JFrame addEmployeeFrame = new JFrame("새로운 직원 정보 추가하기");
+        addEmployeeFrame.setSize(450, 450);
+        addEmployeeFrame.setLocationRelativeTo(this);
 
+        String[] labels = {"Fname:", "Minit:", "Lname:", "Ssn:", "Bdate:", "Address:", "Sex:", "Salary:", "Super_ssn:", "Dno:"};
+        JComponent[] attributes = new JComponent[labels.length];
+        for(int i = 0; i < attributes.length; i++) {
+            attributes[i] = new JTextField();
+            if(i == 6) attributes[i] = new JComboBox<>(new String[] {"F", "M"});
+        }
+        JPanel panel = new JPanel(new GridLayout(labels.length, 2, 5, 5));
+        panel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+        for (int i = 0; i < labels.length; i++) {
+            panel.add(new JLabel(labels[i]));
+            panel.add(attributes[i]);
+        }
+        JButton addButton = new JButton("정보 추가하기");
+        addButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                performUpdateInfo(); // 직원 정보 추가
+            }
+        });
+        JPanel buttonPanel = new JPanel();
+        buttonPanel.add(addButton);
+
+        addEmployeeFrame.add(panel, BorderLayout.CENTER);
+        addEmployeeFrame.add(buttonPanel, BorderLayout.SOUTH);
+
+        addEmployeeFrame.setVisible(true);
+    }
     @Override
     public void actionPerformed(ActionEvent e) {
-        ConnectToMySQL();
         if(e.getSource() == CategoryBox) {
             String selectedCategory = (String)CategoryBox.getSelectedItem();
             ConditionBox.setVisible(false);
             salaryTextField.setVisible(false);
-
+            avgSalaryLabel.setVisible("전체".equals(selectedCategory));
+            AvgSalCategoryBox.setVisible("전체".equals(selectedCategory));
             if("부서".equals(selectedCategory)) {
                 ConditionBox.removeAllItems();
                 for(String dept : departmentContent) {
@@ -209,19 +245,16 @@ public class InfoRetrieval extends JFrame implements ActionListener {
             }
             else ConditionBox.addItem("없음");
         }
-        // 검색, 제거, 수정 알고리즘 수행
+        // 검색, 제거 알고리즘 수행
         if(e.getSource() == RetrievalBtn) {
             performSearchInfo();
         }
         else if(e.getSource() == DeleteInfoBtn) {
             performDeleteInfo();
         }
-//        else if(e.getSource() == UpdateInfoBtn) {
-//            performUpdateInfo();
-//        }
     }
     private void performSearchInfo() {
-        // 직원 정보 검색 알고리즘
+        // 직원 정보 검색 출력
     }
     private void performDeleteInfo() {
         // 직원 정보 제거 알고리즘
@@ -230,6 +263,7 @@ public class InfoRetrieval extends JFrame implements ActionListener {
         // 직원 정보 수정 알고리즘
     }
     public static void main(String[] args) {
-        new InfoRetrieval();
+        InfoRetrieval app = new InfoRetrieval();
+        app.ConnectToMySQL();
     }
 }
