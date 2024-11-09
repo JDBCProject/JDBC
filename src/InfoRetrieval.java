@@ -11,9 +11,6 @@ import java.util.Date;
 import static java.sql.DriverManager.getConnection;
 
 public class InfoRetrieval extends JFrame implements ActionListener {
-    private static final String url = "jdbc:mysql://localhost:3306/mydb?serverTimeZone=UTC";
-    private static final String usr = "root";
-    private static final String password = "12345678";
 
     private Connection conn;
 
@@ -44,8 +41,8 @@ public class InfoRetrieval extends JFrame implements ActionListener {
     private JCheckBox supervisor = new JCheckBox("Supervisor(상사)", true);
     private JCheckBox department = new JCheckBox("Department(부서)", true);
 
-    public InfoRetrieval() {
-        conn = ConnectToMySQL();
+    public InfoRetrieval(Connection connection) {
+        this.conn = connection;
         if (conn != null) {
             System.out.println("데이터베이스 연결 성공!");
         }
@@ -217,15 +214,15 @@ public class InfoRetrieval extends JFrame implements ActionListener {
                 BorderFactory.createLineBorder(new Color(50, 50, 50, 50), 1),
                 BorderFactory.createEmptyBorder(5, 10, 5, 10)));
     }
-    private Connection ConnectToMySQL() { // MySQL 연결
-        try {
-            Connection conn = DriverManager.getConnection(url, usr, password);
-            return conn;
-        } catch (SQLException e) {
-            System.out.println("데이터베이스 연결 실패." + e.getMessage());
-            return null;
-        }
-    }
+//    private Connection ConnectToMySQL() { // MySQL 연결
+//        try {
+//            Connection conn = DriverManager.getConnection(url, usr, password);
+//            return conn;
+//        } catch (SQLException e) {
+//            System.out.println("데이터베이스 연결 실패." + e.getMessage());
+//            return null;
+//        }
+//    }
     private void openAddEmpWindow() { // 직원 정보 추가하는 새로운 창
         JFrame addEmployeeFrame = new JFrame("새로운 직원 정보 추가하기");
         addEmployeeFrame.setSize(450, 450);
@@ -337,7 +334,6 @@ public class InfoRetrieval extends JFrame implements ActionListener {
         String fname, minit, lname, ssn, bdate, address, sex, salary, super_ssn, dno;
 
         String stmt = "INSERT INTO EMPLOYEE (Fname, Minit, Lname, Ssn, Bdate, Address, Sex, Salary, Super_ssn, Dno) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
-        Connection conn = ConnectToMySQL();
         PreparedStatement p = conn.prepareStatement(stmt);
 
         fname = ((JTextField) attributes[0]).getText();
@@ -382,7 +378,6 @@ public class InfoRetrieval extends JFrame implements ActionListener {
         }
     }
     public static void main(String[] args) {
-        InfoRetrieval app = new InfoRetrieval();
-        app.ConnectToMySQL();
+        SwingUtilities.invokeLater(LoginWindow::new);
     }
 }
