@@ -1,4 +1,6 @@
 import javax.swing.*;
+import javax.swing.border.TitledBorder;
+import javax.swing.table.DefaultTableModel;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -11,7 +13,7 @@ import static java.sql.DriverManager.getConnection;
 public class InfoRetrieval extends JFrame implements ActionListener {
     private static final String url = "jdbc:mysql://localhost:3306/mydb?serverTimeZone=UTC";
     private static final String usr = "root";
-    private static final String password = "1111";
+    private static final String password = "12345678";
 
     private Connection conn;
 
@@ -25,6 +27,8 @@ public class InfoRetrieval extends JFrame implements ActionListener {
 
     private JLabel timeLabel = new JLabel(); // 현재 시간 표시
     private JLabel avgSalaryLabel;
+    private JTable showEmpTable;
+    private DefaultTableModel defaultTableModel;
     private JLabel selectedEmp = new JLabel("선택한 직원 이름: ");
     private JButton RetrievalBtn = new JButton("직원 검색"); // 정보 검색 버튼
     private JButton DeleteInfoBtn = new JButton("데이터 삭제"); // 정보 제거 버튼
@@ -62,6 +66,7 @@ public class InfoRetrieval extends JFrame implements ActionListener {
         setLocationRelativeTo(null);
         setVisible(true);
 
+        performSearchInfo();
     }
     private void updateTime() {
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
@@ -77,8 +82,28 @@ public class InfoRetrieval extends JFrame implements ActionListener {
     }
     private void BasicUI() {
 
+        defaultTableModel = new DefaultTableModel();
+        showEmpTable = new JTable(defaultTableModel);
+        JScrollPane tableScroll = new JScrollPane(showEmpTable);
+
+        String[] columns = {"Name", "Ssn", "Bdate", "Address", "Sex", "Salary", "Super_ssn", "Department_Name"};
+        for(String column : columns) {
+            defaultTableModel.addColumn(column);
+        }
+
+        JPanel tablePanel = new JPanel(new BorderLayout());
+        tablePanel.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createTitledBorder(BorderFactory.createLineBorder(Color.GRAY), "Employee Information",
+                        SwingConstants.CENTER, TitledBorder.TOP, new Font("Arial", Font.BOLD, 16), Color.WHITE),
+                BorderFactory.createEmptyBorder(10, 10, 10, 10)
+        ));
+        tablePanel.setBackground(Color.BLACK);
+        tablePanel.add(tableScroll, BorderLayout.CENTER);
+        add(tablePanel, BorderLayout.CENTER);
+
         JPanel timePanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
         timePanel.setBackground(new Color(230, 230, 250));
+        timePanel.setFont(new Font("Arial", Font.BOLD, 16));
         timePanel.add(timeLabel);
 
         JPanel jPanel0 = new JPanel();
@@ -87,11 +112,14 @@ public class InfoRetrieval extends JFrame implements ActionListener {
         jPanel0.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
         JLabel rangeLabel = new JLabel("검색 범위 ");
         rangeLabel.setFont(new Font("Arial", Font.BOLD, 14));
+        rangeLabel.setForeground(Color.DARK_GRAY);
         jPanel0.add(rangeLabel);
 
         String[] categorybox = {"전체", "부서", "성별", "연봉"};
         CategoryBox = new JComboBox<>(categorybox);
         CategoryBox.addActionListener(this);
+        CategoryBox.setFont(new Font("Arial", Font.PLAIN, 14));
+        CategoryBox.setBackground(Color.WHITE);
         ConditionBox = new JComboBox<>();
         salaryTextField = new JTextField(10);
         salaryTextField.setVisible(false);
@@ -102,11 +130,15 @@ public class InfoRetrieval extends JFrame implements ActionListener {
 
         avgSalaryLabel = new JLabel("평균 급여 기준: ");
         avgSalaryLabel.setVisible(false);
+        avgSalaryLabel.setFont(new Font("Arial", Font.BOLD, 14));
+        avgSalaryLabel.setForeground(Color.DARK_GRAY);
         jPanel0.add(avgSalaryLabel);
 
         String[] avgSalCategory = {"그룹 없음", "성별", "부서", "상급자"};
         AvgSalCategoryBox = new JComboBox<>(avgSalCategory);
         AvgSalCategoryBox.addActionListener(this);
+        AvgSalCategoryBox.setFont(new Font("Arial", Font.PLAIN, 14));
+        AvgSalCategoryBox.setBackground(Color.WHITE);
         AvgSalCategoryBox.setVisible(false);
         jPanel0.add(AvgSalCategoryBox);
 
@@ -120,7 +152,8 @@ public class InfoRetrieval extends JFrame implements ActionListener {
         ContentCheckPanel.setLayout(new BoxLayout(ContentCheckPanel, BoxLayout.Y_AXIS));
         ContentCheckPanel.setBackground(new Color(230, 230, 250));
         ContentCheckPanel.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createTitledBorder("검색 항목"),
+                BorderFactory.createTitledBorder(BorderFactory.createLineBorder(Color.GRAY), "검색 항목",
+                        SwingConstants.CENTER, TitledBorder.TOP, new Font("Arial", Font.BOLD, 14), Color.DARK_GRAY),
                 BorderFactory.createEmptyBorder(10, 10, 10, 10)
         ));
 
@@ -211,7 +244,7 @@ public class InfoRetrieval extends JFrame implements ActionListener {
             panel.add(new JLabel(labels[i]));
             panel.add(attributes[i]);
         }
-        JButton addButton = new JButton("정보 추가하기");
+        JButton addButton = new JButton("직원 정보 추가하기");
         addButton.addActionListener(e -> {
             try {
                 performInsertInfo(attributes);
@@ -263,7 +296,38 @@ public class InfoRetrieval extends JFrame implements ActionListener {
         }
     }
     private void performSearchInfo() {
-        // 직원 정보 검색 출력
+        // 직원 정보 출력 알고리즘
+        try {
+            String querySearch = """
+                SELECT CONCAT(Fname, ' ', Minit, ' ', Lname) AS Name,
+                       Ssn, Bdate, Address, Sex, Salary, Super_ssn,
+                       DEPARTMENT.Dname AS Department
+                FROM EMPLOYEE JOIN DEPARTMENT ON EMPLOYEE.Dno = DEPARTMENT.Dnumber
+                """;
+            // 조인 해서 Department_name을 가져옴
+            PreparedStatement statement = conn.prepareStatement(querySearch);
+            ResultSet resultSet = statement.executeQuery();
+
+            defaultTableModel.setRowCount(0);
+
+            while (resultSet.next()) {
+                Object[] row = {
+                        resultSet.getString("Name"),
+                        resultSet.getString("Ssn"),
+                        resultSet.getString("Bdate"),
+                        resultSet.getString("Address"),
+                        resultSet.getString("Sex"),
+                        resultSet.getString("Salary"),
+                        resultSet.getString("Super_ssn"),
+                        resultSet.getString("Department")
+                };
+                defaultTableModel.addRow(row);
+            }
+            resultSet.close();
+            statement.close();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
     }
     private void performDeleteInfo() {
         // 직원 정보 제거 알고리즘
@@ -310,8 +374,6 @@ public class InfoRetrieval extends JFrame implements ActionListener {
             else ((JComboBox<?>) attribute).setSelectedIndex(0);
 
         }
-
-
         try {
             if(conn != null)
                 conn.close();
