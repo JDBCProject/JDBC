@@ -11,7 +11,9 @@ import static java.sql.DriverManager.getConnection;
 public class InfoRetrieval extends JFrame implements ActionListener {
     private static final String url = "jdbc:mysql://localhost:3306/mydb?serverTimeZone=UTC";
     private static final String usr = "root";
-    private static final String password = "12345678";
+    private static final String password = "1111";
+
+    private Connection conn;
 
     private static final String[] departmentContent = {"Research", "Administration", "Headquarters"}; // 부서 카테고리
     private static final String[] sexContent = {"F", "M"}; // 성별 카테고리
@@ -39,6 +41,11 @@ public class InfoRetrieval extends JFrame implements ActionListener {
     private JCheckBox department = new JCheckBox("Department(부서)", true);
 
     public InfoRetrieval() {
+        conn = ConnectToMySQL();
+        if (conn != null) {
+            System.out.println("데이터베이스 연결 성공!");
+        }
+
         Timer timer = new Timer(1000, e -> updateTime());
         timer.start();
 
@@ -54,6 +61,7 @@ public class InfoRetrieval extends JFrame implements ActionListener {
         setSize(1500, 700);
         setLocationRelativeTo(null);
         setVisible(true);
+
     }
     private void updateTime() {
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
@@ -179,7 +187,6 @@ public class InfoRetrieval extends JFrame implements ActionListener {
     private Connection ConnectToMySQL() { // MySQL 연결
         try {
             Connection conn = DriverManager.getConnection(url, usr, password);
-            System.out.println("데이터베이스 연결 성공!");
             return conn;
         } catch (SQLException e) {
             System.out.println("데이터베이스 연결 실패." + e.getMessage());
@@ -196,6 +203,7 @@ public class InfoRetrieval extends JFrame implements ActionListener {
         for(int i = 0; i < attributes.length; i++) {
             attributes[i] = new JTextField();
             if(i == 6) attributes[i] = new JComboBox<>(new String[] {"F", "M"});
+
         }
         JPanel panel = new JPanel(new GridLayout(labels.length, 2, 5, 5));
         panel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
@@ -204,12 +212,13 @@ public class InfoRetrieval extends JFrame implements ActionListener {
             panel.add(attributes[i]);
         }
         JButton addButton = new JButton("정보 추가하기");
-        addButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                performUpdateInfo(); // 직원 정보 추가
+        addButton.addActionListener(e -> {
+            try {
+                performInsertInfo(attributes);
+            } catch (SQLException ex) {
+                throw new RuntimeException(ex);
             }
-        });
+        }); // 직원추가 호출
         JPanel buttonPanel = new JPanel();
         buttonPanel.add(addButton);
 
@@ -259,8 +268,56 @@ public class InfoRetrieval extends JFrame implements ActionListener {
     private void performDeleteInfo() {
         // 직원 정보 제거 알고리즘
     }
-    private void performUpdateInfo() {
-        // 직원 정보 수정 알고리즘
+    private void performInsertInfo(JComponent[] attributes) throws SQLException {
+        // 직원 정보 추가 알고리즘
+        String fname, minit, lname, ssn, bdate, address, sex, salary, super_ssn, dno;
+
+        String stmt = "INSERT INTO EMPLOYEE (Fname, Minit, Lname, Ssn, Bdate, Address, Sex, Salary, Super_ssn, Dno) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+        Connection conn = ConnectToMySQL();
+        PreparedStatement p = conn.prepareStatement(stmt);
+
+        fname = ((JTextField) attributes[0]).getText();
+        minit = ((JTextField) attributes[1]).getText();
+        lname = ((JTextField) attributes[2]).getText();
+        ssn = ((JTextField) attributes[3]).getText();
+        bdate = ((JTextField) attributes[4]).getText();
+        address = ((JTextField) attributes[5]).getText();
+        sex = (String) ((JComboBox<?>) attributes[6]).getSelectedItem();
+        salary = ((JTextField) attributes[7]).getText();
+        super_ssn = ((JTextField) attributes[8]).getText();
+        dno = ((JTextField) attributes[9]).getText();
+
+        p.clearParameters();
+        p.setString(1, fname);
+        p.setString(2, minit);
+        p.setString(3, lname);
+        p.setString(4, ssn);
+        p.setString(5, bdate);
+        p.setString(6, address);
+        p.setString(7, sex);
+        p.setString(8, salary);
+        p.setString(9, super_ssn);
+        p.setString(10, dno);
+
+        // 값을 저장할 필요가 없으므로 바로 update
+        p.executeUpdate();
+
+        JOptionPane.showMessageDialog(null, "직원이 추가되었습니다."); // 추가 성공 메시지
+        
+        // 입력 필드 초기화 과정
+        for (JComponent attribute : attributes) {
+            if (attribute instanceof JTextField) ((JTextField) attribute).setText("");
+            else ((JComboBox<?>) attribute).setSelectedIndex(0);
+
+        }
+
+
+        try {
+            if(conn != null)
+                conn.close();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
     }
     public static void main(String[] args) {
         InfoRetrieval app = new InfoRetrieval();
