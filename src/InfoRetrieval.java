@@ -328,6 +328,38 @@ public class InfoRetrieval extends JFrame implements ActionListener {
     }
     private void performDeleteInfo() {
         // 직원 정보 제거 알고리즘
+        /* 해당 코드 추가전에  git pull 만 하고 난 후,  실행 시 화면이 제대로 뜨지 않아 바로 추가하면 안 될 것 같아서 아래 코드는 주석처리로 해놓앗습니다.
+            // 선택된 행
+            int selectedRow = showEmpTable.getSelectedRow();
+            //선택된 행이 없는 경우
+            if (selectedRow == -1) {
+                JOptionPane.showMessageDialog(this, "삭제할 직원을 선택해주세요.", "경고", JOptionPane.WARNING_MESSAGE);
+                return;
+            }
+
+            // 선택된 직원의 SSN 갖고오기
+            String selectedSsn = (String) defaultTableModel.getValueAt(selectedRow, 1); // ssn이 두번째 열이기에 1로 설정
+
+            // DB에서 선택된 직원의 SSN을 이용하여 삭제하기
+            try (PreparedStatement stmt = conn.prepareStatement("DELETE FROM EMPLOYEE WHERE Ssn = ?")) {
+                stmt.setString(1, selectedSsn);
+
+                int rowsAffected = stmt.executeUpdate();
+                if (rowsAffected > 0) {
+                    JOptionPane.showMessageDialog(this, "직원 정보가 삭제되었습니다."); //삭제 성공 메시지
+                    // 보여지는 부분에서도 삭제하기
+                    defaultTableModel.removeRow(selectedRow);
+                } else {
+                    JOptionPane.showMessageDialog(this, "삭제할 직원을 찾을 수 없습니다.", "오류", JOptionPane.ERROR_MESSAGE);
+                }
+            }
+            // 오류가 있을 경우
+            catch (SQLException e) {
+                JOptionPane.showMessageDialog(this, "데이터베이스 오류: " + e.getMessage(), "오류", JOptionPane.ERROR_MESSAGE);
+                e.printStackTrace();
+            }
+
+         */
     }
     private void performInsertInfo(JComponent[] attributes) throws SQLException {
         // 직원 정보 추가 알고리즘
