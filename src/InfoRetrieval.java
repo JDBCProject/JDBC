@@ -28,7 +28,7 @@ public class InfoRetrieval extends JFrame implements ActionListener {
     private DefaultTableModel defaultTableModel;
     private JLabel selectedEmp = new JLabel("선택한 직원 이름: ");
     private JButton RetrievalBtn = new JButton("직원 검색"); // 정보 검색 버튼
-    private JButton DeleteInfoBtn = new JButton("데이터 삭제"); // 정보 제거 버튼
+    private JButton DeleteInfoBtn = new JButton("직원 정보 삭제"); // 정보 제거 버튼
     private JButton AddEmpInfoBtn = new JButton("직원 추가하기");
 
 
@@ -187,6 +187,7 @@ public class InfoRetrieval extends JFrame implements ActionListener {
 
         JPanel DeleteInfoPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 5));
         DeleteInfoPanel.setBackground(new Color(230, 230, 250));
+        DeleteInfoBtn.addActionListener(this);
         DeleteInfoPanel.add(DeleteInfoBtn);
 
         JPanel BtmPanel = new JPanel();
@@ -214,15 +215,6 @@ public class InfoRetrieval extends JFrame implements ActionListener {
                 BorderFactory.createLineBorder(new Color(50, 50, 50, 50), 1),
                 BorderFactory.createEmptyBorder(5, 10, 5, 10)));
     }
-//    private Connection ConnectToMySQL() { // MySQL 연결
-//        try {
-//            Connection conn = DriverManager.getConnection(url, usr, password);
-//            return conn;
-//        } catch (SQLException e) {
-//            System.out.println("데이터베이스 연결 실패." + e.getMessage());
-//            return null;
-//        }
-//    }
     private void openAddEmpWindow() { // 직원 정보 추가하는 새로운 창
         JFrame addEmployeeFrame = new JFrame("새로운 직원 정보 추가하기");
         addEmployeeFrame.setSize(450, 450);
@@ -245,6 +237,7 @@ public class InfoRetrieval extends JFrame implements ActionListener {
         addButton.addActionListener(e -> {
             try {
                 performInsertInfo(attributes);
+                addEmployeeFrame.dispose();
             } catch (SQLException ex) {
                 throw new RuntimeException(ex);
             }
@@ -328,7 +321,7 @@ public class InfoRetrieval extends JFrame implements ActionListener {
     }
     private void performDeleteInfo() {
         // 직원 정보 제거 알고리즘
-        /* 해당 코드 추가전에  git pull 만 하고 난 후,  실행 시 화면이 제대로 뜨지 않아 바로 추가하면 안 될 것 같아서 아래 코드는 주석처리로 해놓앗습니다.
+        // 해당 코드 추가전에  git pull 만 하고 난 후,  실행 시 화면이 제대로 뜨지 않아 바로 추가하면 안 될 것 같아서 아래 코드는 주석처리로 해놓앗습니다.
             // 선택된 행
             int selectedRow = showEmpTable.getSelectedRow();
             //선택된 행이 없는 경우
@@ -359,7 +352,7 @@ public class InfoRetrieval extends JFrame implements ActionListener {
                 e.printStackTrace();
             }
 
-         */
+
     }
     private void performInsertInfo(JComponent[] attributes) throws SQLException {
         // 직원 정보 추가 알고리즘
@@ -395,18 +388,12 @@ public class InfoRetrieval extends JFrame implements ActionListener {
         p.executeUpdate();
 
         JOptionPane.showMessageDialog(null, "직원이 추가되었습니다."); // 추가 성공 메시지
-        
+        performSearchInfo(); // 정보 실시간 반영
         // 입력 필드 초기화 과정
         for (JComponent attribute : attributes) {
             if (attribute instanceof JTextField) ((JTextField) attribute).setText("");
             else ((JComboBox<?>) attribute).setSelectedIndex(0);
 
-        }
-        try {
-            if(conn != null)
-                conn.close();
-        } catch (SQLException e) {
-            e.printStackTrace();
         }
     }
     public static void main(String[] args) {
