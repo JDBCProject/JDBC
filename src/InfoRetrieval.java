@@ -6,9 +6,10 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.sql.*;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
-
-import static java.sql.DriverManager.getConnection;
+import java.util.Map;
+import java.util.List;
 
 public class InfoRetrieval extends JFrame implements ActionListener {
 
@@ -20,13 +21,11 @@ public class InfoRetrieval extends JFrame implements ActionListener {
     private JComboBox<String> ConditionBox;
     private JComboBox<String> AvgSalCategoryBox;
     private JTextField salaryTextField; // 연봉 입력 필드
-    private JTextArea selectedEmpInfo = new JTextArea(2, 80); // 선택한 직원의 이름을 가져오는 필드
 
     private JLabel timeLabel = new JLabel(); // 현재 시간 표시
     private JLabel avgSalaryLabel;
     private JTable showEmpTable;
     private DefaultTableModel defaultTableModel;
-    private JLabel selectedEmp = new JLabel("선택한 직원 이름: ");
     private JButton RetrievalBtn = new JButton("직원 검색"); // 정보 검색 버튼
     private JButton DeleteInfoBtn = new JButton("직원 정보 삭제"); // 정보 제거 버튼
     private JButton AddEmpInfoBtn = new JButton("직원 추가하기");
@@ -49,10 +48,6 @@ public class InfoRetrieval extends JFrame implements ActionListener {
 
         Timer timer = new Timer(1000, e -> updateTime());
         timer.start();
-
-        selectedEmpInfo.setEditable(false);
-        selectedEmpInfo.setLineWrap(true);
-        selectedEmpInfo.setBorder(BorderFactory.createLineBorder(Color.BLACK));
 
         setLook();
         BasicUI();
@@ -136,7 +131,7 @@ public class InfoRetrieval extends JFrame implements ActionListener {
         AvgSalCategoryBox.addActionListener(this);
         AvgSalCategoryBox.setFont(new Font("Arial", Font.PLAIN, 14));
         AvgSalCategoryBox.setBackground(Color.WHITE);
-        AvgSalCategoryBox.setVisible(false);
+        AvgSalCategoryBox.setVisible(true);
         jPanel0.add(AvgSalCategoryBox);
 
         AddEmpInfoBtn.setFont(new Font("Arial", Font.BOLD, 12));
@@ -164,6 +159,7 @@ public class InfoRetrieval extends JFrame implements ActionListener {
 
         ContentCheckPanel.add(Box.createVerticalStrut(10));
         ContentCheckPanel.add(RetrievalBtn);
+        RetrievalBtn.addActionListener(this); // 검색 버튼 작동
 
         BtnUI(RetrievalBtn, new Color(70, 130, 180));
         BtnUI(DeleteInfoBtn, new Color(70, 130, 180));
@@ -180,9 +176,6 @@ public class InfoRetrieval extends JFrame implements ActionListener {
         JPanel SelectPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 5));
         SelectPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
         SelectPanel.setBackground(new Color(230, 230, 250));
-        selectedEmp.setFont(new Font("Arial", Font.BOLD, 14));
-        SelectPanel.add(selectedEmp);
-        SelectPanel.add(selectedEmpInfo);
 
 
         JPanel DeleteInfoPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 5));
@@ -254,6 +247,7 @@ public class InfoRetrieval extends JFrame implements ActionListener {
     public void actionPerformed(ActionEvent e) {
         if(e.getSource() == CategoryBox) {
             String selectedCategory = (String)CategoryBox.getSelectedItem();
+            AvgSalCategoryBox.setSelectedItem("그룹 없음");
             ConditionBox.setVisible(false);
             salaryTextField.setVisible(false);
             avgSalaryLabel.setVisible("전체".equals(selectedCategory));
@@ -287,34 +281,135 @@ public class InfoRetrieval extends JFrame implements ActionListener {
     }
     private void performSearchInfo() {
         // 직원 정보 출력 알고리즘
+        // 리스트와 맵을 통해 체크박스와 컬럼 이름을 매핑 시킴
         try {
-            String querySearch = """
-                SELECT CONCAT(Fname, ' ', Minit, ' ', Lname) AS Name,
-                       Ssn, Bdate, Address, Sex, Salary, Super_ssn,
-                       DEPARTMENT.Dname AS Department
-                FROM EMPLOYEE JOIN DEPARTMENT ON EMPLOYEE.Dno = DEPARTMENT.Dnumber
-                """;
-            // 조인 해서 Department_name을 가져옴
-            PreparedStatement statement = conn.prepareStatement(querySearch);
-            ResultSet resultSet = statement.executeQuery();
+            List<Map.Entry<JCheckBox, String>> columnList = List.of(
+                    Map.entry(name, "CONCAT(Fname,' ', Minit, ' ', Lname) AS Name"),
+                    Map.entry(ssn, "Ssn"),
+                    Map.entry(bdate, "Bdate"),
+                    Map.entry(address, "Address"),
+                    Map.entry(sex, "Sex"),
+                    Map.entry(salary, "Salary"),
+                    Map.entry(supervisor, "Super_ssn"),
+                    Map.entry(department, "DEPARTMENT.Dname AS Department")
+            );
+            // 조건을 두어 각각 평균 연봉 검색
+            String groupCategory = (String)AvgSalCategoryBox.getSelectedItem();
+            if (!"그룹 없음".equals(groupCategory)) {
+                String groupQuery = "";
+                // 선택된 카테고리에 따라 다른 질의 형식
+                switch (groupCategory) {
+                    case "성별":
+                        groupQuery = "SELECT Sex, AVG(Salary) AS Average_Salary FROM EMPLOYEE GROUP BY Sex";
+                        break;
+                    case "부서":
+                        groupQuery = "SELECT DEPARTMENT.Dname AS Department_name, AVG(Salary) AS Average_Salary " +
+                                "FROM EMPLOYEE JOIN DEPARTMENT ON EMPLOYEE.Dno = DEPARTMENT.Dnumber " +
+                                "GROUP BY DEPARTMENT.Dname";
+                        break;
+                    case "상급자":
+                        groupQuery = "SELECT EMPLOYEE.Super_ssn AS Supervisor, AVG(Salary) AS Average_Salary " +
+                                "FROM EMPLOYEE GROUP BY EMPLOYEE.Super_ssn";
+                        break;
+                }
+            if(!groupCategory.isEmpty()) {
+                try (PreparedStatement stmt = conn.prepareStatement(groupQuery);
+                     ResultSet resultSet = stmt.executeQuery()) {
 
+                    // 테이블 초기화 및 컬럼 재구성
+                    defaultTableModel.setRowCount(0);
+                    defaultTableModel.setColumnCount(0);
+
+                    String[] columns;
+                    // 카테고리 종류 마다 다른 컬럼 배열 구성
+                    switch (groupCategory) {
+                        case "성별":
+                            columns = new String[]{"Sex", "Average_Salary"};
+                            break;
+                        case "부서":
+                            columns = new String[]{"Department_name", "Average_Salary"};
+                            break;
+                        case "상급자":
+                            columns = new String[]{"Supervisor", "Average_Salary"};
+                            break;
+                        default:
+                            columns = new String[]{};
+                    }
+                    // 컬럼 이름 추가
+                    for (String column : columns) {
+                        defaultTableModel.addColumn(column);
+                    }
+                    // 행 데이터 추가
+                    while (resultSet.next()) {
+                        Object[] row = new Object[columns.length];
+                        for (int i = 0; i < columns.length; i++) {
+                            row[i] = resultSet.getObject(columns[i]);
+                        }
+                        defaultTableModel.addRow(row);
+                    }
+                }
+                return;
+                }
+            }
+            // 조건 검색(부서, 성별, 연봉)
+            // 체크박스 선택된 컬럼만 질의 생성
+            String columns = columnList.stream()
+                    .filter(entry -> entry.getKey().isSelected())
+                    .map(Map.Entry::getValue)                     // SQL 컬럼 이름 가져옴
+                    .reduce((col1, col2) -> col1 + ", " + col2)
+                    .orElse("*");
+
+            String selectedCategory = (String)CategoryBox.getSelectedItem();
+            String filterCondition = ""; // 추가할 조건 질의
+            // 카테고리에서 선택된 이름에 따른 검색 조건 추가
+            if("부서".equals(selectedCategory)) {
+                filterCondition = "WHERE DEPARTMENT.Dname = ?";
+            }
+            else if("성별".equals(selectedCategory)) {
+                filterCondition = "WHERE EMPLOYEE.Sex = ?";
+            }
+            else if("연봉".equals(selectedCategory)) {
+                filterCondition = "WHERE EMPLOYEE.Salary >= ?";
+            }
+            // SQL 쿼리 생성
+            String querySearch = "SELECT " + columns + " FROM EMPLOYEE JOIN DEPARTMENT ON EMPLOYEE.Dno = DEPARTMENT.Dnumber " + filterCondition;
+
+            PreparedStatement stmt = conn.prepareStatement(querySearch);
+            // 조건에 따른 값 설정
+            if("부서".equals(selectedCategory)) {
+                stmt.setString(1, (String)ConditionBox.getSelectedItem());
+            }
+            else if("성별".equals(selectedCategory)) {
+                stmt.setString(1, (String)ConditionBox.getSelectedItem());
+            }
+            else if("연봉".equals(selectedCategory)) {
+                stmt.setInt(1, Integer.parseInt(salaryTextField.getText()));
+            }
+            // 질의 실행
+            ResultSet resultSet = stmt.executeQuery();
+
+            // 테이블 초기화 및 컬럼 재구성
             defaultTableModel.setRowCount(0);
+            defaultTableModel.setColumnCount(0);
 
+            // 선택한 체크박스의 컬럼 추가
+            columnList.stream()
+                    .filter(entry -> entry.getKey().isSelected()) // 선택된 체크박스만 필터링
+                    .map(entry -> entry.getValue().split(" AS ").length > 1 ? entry.getValue().split(" AS ")[1] : entry.getValue())
+                    .forEach(defaultTableModel::addColumn);   // 테이블에 컬럼 추가
+            // 선택한 체크박스의 데이터 행 추가
             while (resultSet.next()) {
-                Object[] row = {
-                        resultSet.getString("Name"),
-                        resultSet.getString("Ssn"),
-                        resultSet.getString("Bdate"),
-                        resultSet.getString("Address"),
-                        resultSet.getString("Sex"),
-                        resultSet.getString("Salary"),
-                        resultSet.getString("Super_ssn"),
-                        resultSet.getString("Department")
-                };
-                defaultTableModel.addRow(row);
+                List<Object> row = new ArrayList<>();
+                for (Map.Entry<JCheckBox, String> entry : columnList) {
+                    if (entry.getKey().isSelected()) {
+                        String columnAlias = entry.getValue().split(" AS ").length > 1 ? entry.getValue().split(" AS ")[1] : entry.getValue();
+                        row.add(resultSet.getString(columnAlias));
+                    }
+                }
+                defaultTableModel.addRow(row.toArray());
             }
             resultSet.close();
-            statement.close();
+            stmt.close();
         } catch (SQLException e) {
             e.printStackTrace();
         }
