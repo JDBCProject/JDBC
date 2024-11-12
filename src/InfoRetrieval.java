@@ -31,14 +31,14 @@ public class InfoRetrieval extends JFrame implements ActionListener {
     private JButton AddEmpInfoBtn = new JButton("Add Employee");
 
 
-    private JCheckBox name = new JCheckBox("Name(이름)", true);
-    private JCheckBox ssn = new JCheckBox("Ssn(주민번호)", true);
-    private JCheckBox bdate = new JCheckBox("Bdate(생일)", true);
-    private JCheckBox address = new JCheckBox("Address(주소)", true);
-    private JCheckBox sex = new JCheckBox("Sex(성별)", true);
-    private JCheckBox salary = new JCheckBox("Salary(연봉)", true);
-    private JCheckBox supervisor = new JCheckBox("Supervisor(상사)", true);
-    private JCheckBox department = new JCheckBox("Department(부서)", true);
+    private JCheckBox name = new JCheckBox("Name", true);
+    private JCheckBox ssn = new JCheckBox("Ssn", true);
+    private JCheckBox bdate = new JCheckBox("Bdate", true);
+    private JCheckBox address = new JCheckBox("Address", true);
+    private JCheckBox sex = new JCheckBox("Sex", true);
+    private JCheckBox salary = new JCheckBox("Salary", true);
+    private JCheckBox supervisor = new JCheckBox("Supervisor", true);
+    private JCheckBox department = new JCheckBox("Department", true);
 
     public InfoRetrieval(Connection connection) {
         this.conn = connection;
