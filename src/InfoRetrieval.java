@@ -26,9 +26,9 @@ public class InfoRetrieval extends JFrame implements ActionListener {
     private JLabel avgSalaryLabel;
     private JTable showEmpTable;
     private DefaultTableModel defaultTableModel;
-    private JButton RetrievalBtn = new JButton("직원 검색"); // 정보 검색 버튼
-    private JButton DeleteInfoBtn = new JButton("직원 정보 삭제"); // 정보 제거 버튼
-    private JButton AddEmpInfoBtn = new JButton("직원 추가하기");
+    private JButton RetrievalBtn = new JButton("Retrieval"); // 정보 검색 버튼
+    private JButton DeleteInfoBtn = new JButton("InfoDelete"); // 정보 제거 버튼
+    private JButton AddEmpInfoBtn = new JButton("Add Employee");
 
 
     private JCheckBox name = new JCheckBox("Name(이름)", true);
@@ -102,12 +102,12 @@ public class InfoRetrieval extends JFrame implements ActionListener {
         jPanel0.setLayout(new FlowLayout(FlowLayout.LEFT));
         jPanel0.setBackground(new Color(230, 230, 250));
         jPanel0.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
-        JLabel rangeLabel = new JLabel("검색 범위 ");
+        JLabel rangeLabel = new JLabel("Retrieval Range ");
         rangeLabel.setFont(new Font("Arial", Font.BOLD, 14));
         rangeLabel.setForeground(Color.DARK_GRAY);
         jPanel0.add(rangeLabel);
 
-        String[] categorybox = {"전체", "부서", "성별", "연봉"};
+        String[] categorybox = {"All", "Department", "Sex", "Salary"};
         CategoryBox = new JComboBox<>(categorybox);
         CategoryBox.addActionListener(this);
         CategoryBox.setFont(new Font("Arial", Font.PLAIN, 14));
@@ -120,13 +120,13 @@ public class InfoRetrieval extends JFrame implements ActionListener {
         jPanel0.add(ConditionBox);
         jPanel0.add(salaryTextField);
 
-        avgSalaryLabel = new JLabel("평균 급여 기준: ");
+        avgSalaryLabel = new JLabel("Avg Salary: ");
         avgSalaryLabel.setVisible(false);
         avgSalaryLabel.setFont(new Font("Arial", Font.BOLD, 14));
         avgSalaryLabel.setForeground(Color.DARK_GRAY);
         jPanel0.add(avgSalaryLabel);
 
-        String[] avgSalCategory = {"그룹 없음", "성별", "부서", "상급자"};
+        String[] avgSalCategory = {"None", "Sex", "Department", "Supervisor"};
         AvgSalCategoryBox = new JComboBox<>(avgSalCategory);
         AvgSalCategoryBox.addActionListener(this);
         AvgSalCategoryBox.setFont(new Font("Arial", Font.PLAIN, 14));
@@ -144,7 +144,7 @@ public class InfoRetrieval extends JFrame implements ActionListener {
         ContentCheckPanel.setLayout(new BoxLayout(ContentCheckPanel, BoxLayout.Y_AXIS));
         ContentCheckPanel.setBackground(new Color(230, 230, 250));
         ContentCheckPanel.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createTitledBorder(BorderFactory.createLineBorder(Color.GRAY), "검색 항목",
+                BorderFactory.createTitledBorder(BorderFactory.createLineBorder(Color.GRAY), "Retrieval List",
                         SwingConstants.CENTER, TitledBorder.TOP, new Font("Arial", Font.BOLD, 14), Color.DARK_GRAY),
                 BorderFactory.createEmptyBorder(10, 10, 10, 10)
         ));
@@ -209,7 +209,7 @@ public class InfoRetrieval extends JFrame implements ActionListener {
                 BorderFactory.createEmptyBorder(5, 10, 5, 10)));
     }
     private void openAddEmpWindow() { // 직원 정보 추가하는 새로운 창
-        JFrame addEmployeeFrame = new JFrame("새로운 직원 정보 추가하기");
+        JFrame addEmployeeFrame = new JFrame("Add New Employee Info");
         addEmployeeFrame.setSize(450, 450);
         addEmployeeFrame.setLocationRelativeTo(this);
 
@@ -226,7 +226,7 @@ public class InfoRetrieval extends JFrame implements ActionListener {
             panel.add(new JLabel(labels[i]));
             panel.add(attributes[i]);
         }
-        JButton addButton = new JButton("직원 정보 추가하기");
+        JButton addButton = new JButton("Add Employee Info");
         addButton.addActionListener(e -> {
             try {
                 performInsertInfo(attributes);
@@ -247,29 +247,29 @@ public class InfoRetrieval extends JFrame implements ActionListener {
     public void actionPerformed(ActionEvent e) {
         if(e.getSource() == CategoryBox) {
             String selectedCategory = (String)CategoryBox.getSelectedItem();
-            AvgSalCategoryBox.setSelectedItem("그룹 없음");
+            AvgSalCategoryBox.setSelectedItem("None");
             ConditionBox.setVisible(false);
             salaryTextField.setVisible(false);
-            avgSalaryLabel.setVisible("전체".equals(selectedCategory));
-            AvgSalCategoryBox.setVisible("전체".equals(selectedCategory));
-            if("부서".equals(selectedCategory)) {
+            avgSalaryLabel.setVisible("All".equals(selectedCategory));
+            AvgSalCategoryBox.setVisible("All".equals(selectedCategory));
+            if("Department".equals(selectedCategory)) {
                 ConditionBox.removeAllItems();
                 for(String dept : departmentContent) {
                     ConditionBox.addItem((dept));
                 }
                 ConditionBox.setVisible(true);
             }
-            else if("성별".equals(selectedCategory)) {
+            else if("Sex".equals(selectedCategory)) {
                 ConditionBox.removeAllItems();
                 for(String gender : sexContent) {
                     ConditionBox.addItem(gender);
                 }
                 ConditionBox.setVisible(true);
             }
-            else if ("연봉".equals(selectedCategory)) {
+            else if ("Salary".equals(selectedCategory)) {
                 salaryTextField.setVisible(true);
             }
-            else ConditionBox.addItem("없음");
+            else ConditionBox.addItem("None");
         }
         // 검색, 제거 알고리즘 수행
         if(e.getSource() == RetrievalBtn) {
@@ -295,19 +295,19 @@ public class InfoRetrieval extends JFrame implements ActionListener {
             );
             // 조건을 두어 각각 평균 연봉 검색
             String groupCategory = (String)AvgSalCategoryBox.getSelectedItem();
-            if (!"그룹 없음".equals(groupCategory)) {
+            if (!"None".equals(groupCategory)) {
                 String groupQuery = "";
                 // 선택된 카테고리에 따라 다른 질의 형식
                 switch (groupCategory) {
-                    case "성별":
+                    case "Sex":
                         groupQuery = "SELECT Sex, AVG(Salary) AS Average_Salary FROM EMPLOYEE GROUP BY Sex";
                         break;
-                    case "부서":
+                    case "Department":
                         groupQuery = "SELECT DEPARTMENT.Dname AS Department_name, AVG(Salary) AS Average_Salary " +
                                 "FROM EMPLOYEE JOIN DEPARTMENT ON EMPLOYEE.Dno = DEPARTMENT.Dnumber " +
                                 "GROUP BY DEPARTMENT.Dname";
                         break;
-                    case "상급자":
+                    case "Supervisor":
                         groupQuery = "SELECT EMPLOYEE.Super_ssn AS Supervisor, AVG(Salary) AS Average_Salary " +
                                 "FROM EMPLOYEE GROUP BY EMPLOYEE.Super_ssn";
                         break;
@@ -323,13 +323,13 @@ public class InfoRetrieval extends JFrame implements ActionListener {
                     String[] columns;
                     // 카테고리 종류 마다 다른 컬럼 배열 구성
                     switch (groupCategory) {
-                        case "성별":
+                        case "Sex":
                             columns = new String[]{"Sex", "Average_Salary"};
                             break;
-                        case "부서":
+                        case "Department":
                             columns = new String[]{"Department_name", "Average_Salary"};
                             break;
-                        case "상급자":
+                        case "Supervisor":
                             columns = new String[]{"Supervisor", "Average_Salary"};
                             break;
                         default:
@@ -362,13 +362,13 @@ public class InfoRetrieval extends JFrame implements ActionListener {
             String selectedCategory = (String)CategoryBox.getSelectedItem();
             String filterCondition = ""; // 추가할 조건 질의
             // 카테고리에서 선택된 이름에 따른 검색 조건 추가
-            if("부서".equals(selectedCategory)) {
+            if("Department".equals(selectedCategory)) {
                 filterCondition = "WHERE DEPARTMENT.Dname = ?";
             }
-            else if("성별".equals(selectedCategory)) {
+            else if("Sex".equals(selectedCategory)) {
                 filterCondition = "WHERE EMPLOYEE.Sex = ?";
             }
-            else if("연봉".equals(selectedCategory)) {
+            else if("Salary".equals(selectedCategory)) {
                 filterCondition = "WHERE EMPLOYEE.Salary >= ?";
             }
             // SQL 쿼리 생성
@@ -376,13 +376,13 @@ public class InfoRetrieval extends JFrame implements ActionListener {
 
             PreparedStatement stmt = conn.prepareStatement(querySearch);
             // 조건에 따른 값 설정
-            if("부서".equals(selectedCategory)) {
+            if("Department".equals(selectedCategory)) {
                 stmt.setString(1, (String)ConditionBox.getSelectedItem());
             }
-            else if("성별".equals(selectedCategory)) {
+            else if("Sex".equals(selectedCategory)) {
                 stmt.setString(1, (String)ConditionBox.getSelectedItem());
             }
-            else if("연봉".equals(selectedCategory)) {
+            else if("Salary".equals(selectedCategory)) {
                 stmt.setInt(1, Integer.parseInt(salaryTextField.getText()));
             }
             // 질의 실행
